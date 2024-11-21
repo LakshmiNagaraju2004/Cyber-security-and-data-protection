@@ -1,0 +1,217 @@
+<html>
+<head>
+<title>cyber_security.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #0033b3;}
+.s1 { color: #080808;}
+.s2 { color: #8c8c8c; font-style: italic;}
+.s3 { color: #1750eb;}
+.s4 { color: #067d17;}
+.s5 { color: #0037a6;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+cyber_security.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">hashlib</span>
+<span class="s0">from </span><span class="s1">cryptography.fernet </span><span class="s0">import </span><span class="s1">Fernet</span>
+<span class="s0">import </span><span class="s1">base64</span>
+<span class="s0">from </span><span class="s1">PIL </span><span class="s0">import </span><span class="s1">Image</span>
+<span class="s0">import </span><span class="s1">io</span>
+<span class="s0">import </span><span class="s1">os</span>
+
+<span class="s2"># In-memory storage for user credentials and notes</span>
+<span class="s1">user_credentials = {}</span>
+<span class="s1">user_notes = {}</span>
+
+<span class="s2"># Part 1: Hashing passwords</span>
+<span class="s0">def </span><span class="s1">hash_password(password):</span>
+    <span class="s2">&quot;&quot;&quot;Hashes a password using SHA-256.&quot;&quot;&quot;</span>
+    <span class="s1">hashed = hashlib.sha256(password.encode()).hexdigest()</span>
+    <span class="s0">return </span><span class="s1">hashed</span>
+
+<span class="s2"># Part 2: Key generation and Encryption/Decryption</span>
+<span class="s0">def </span><span class="s1">generate_key(password):</span>
+    <span class="s2">&quot;&quot;&quot;Generates a key from the given password.&quot;&quot;&quot;</span>
+    <span class="s2"># Use a hash of the password to create a key for Fernet</span>
+    <span class="s1">hashed_password = hashlib.sha256(password.encode()).digest()</span>
+    <span class="s1">key = base64.urlsafe_b64encode(hashed_password[:</span><span class="s3">32</span><span class="s1">])</span>
+    <span class="s0">return </span><span class="s1">key</span>
+
+<span class="s0">def </span><span class="s1">encrypt_data(data, key):</span>
+    <span class="s2">&quot;&quot;&quot;Encrypts data using the provided key.&quot;&quot;&quot;</span>
+    <span class="s1">fernet = Fernet(key)</span>
+    <span class="s1">encrypted = fernet.encrypt(data.encode())</span>
+    <span class="s0">return </span><span class="s1">encrypted</span>
+
+<span class="s0">def </span><span class="s1">decrypt_data(encrypted_data, key):</span>
+    <span class="s2">&quot;&quot;&quot;Decrypts data using the provided key.&quot;&quot;&quot;</span>
+    <span class="s1">fernet = Fernet(key)</span>
+    <span class="s1">decrypted = fernet.decrypt(encrypted_data).decode()</span>
+    <span class="s0">return </span><span class="s1">decrypted</span>
+
+<span class="s2"># Part 3: Input Validation</span>
+<span class="s0">def </span><span class="s1">validate_input(user_input):</span>
+    <span class="s2">&quot;&quot;&quot;Validates user input to prevent SQL injection.&quot;&quot;&quot;</span>
+    <span class="s2"># Simple validation: ensure no dangerous characters are included</span>
+    <span class="s0">if </span><span class="s1">any(char </span><span class="s0">in </span><span class="s1">user_input </span><span class="s0">for </span><span class="s1">char </span><span class="s0">in </span><span class="s1">[</span><span class="s4">&quot;'&quot;</span><span class="s1">, </span><span class="s4">'&quot;'</span><span class="s1">, </span><span class="s4">&quot;;&quot;</span><span class="s1">, </span><span class="s4">&quot;--&quot;</span><span class="s1">, </span><span class="s4">&quot;/&quot;</span><span class="s1">, </span><span class="s4">&quot;/&quot;</span><span class="s1">]):</span>
+        <span class="s0">raise </span><span class="s1">ValueError(</span><span class="s4">&quot;Invalid characters in input.&quot;</span><span class="s1">)</span>
+    <span class="s0">return </span><span class="s1">user_input</span>
+
+<span class="s2"># Part 4: Image Encryption/Decryption</span>
+<span class="s0">def </span><span class="s1">encrypt_image(image_path, key):</span>
+    <span class="s2">&quot;&quot;&quot;Encrypts an image using the provided key.&quot;&quot;&quot;</span>
+    <span class="s1">image_path = image_path.strip().strip(</span><span class="s4">'&quot;'</span><span class="s1">).strip(</span><span class="s4">&quot;'&quot;</span><span class="s1">)</span>
+    <span class="s0">if not </span><span class="s1">os.path.isfile(image_path):</span>
+        <span class="s0">raise </span><span class="s1">FileNotFoundError(</span><span class="s4">f&quot;The file at path </span><span class="s5">{</span><span class="s1">image_path</span><span class="s5">} </span><span class="s4">does not exist.&quot;</span><span class="s1">)</span>
+    <span class="s0">with </span><span class="s1">open(image_path, </span><span class="s4">'rb'</span><span class="s1">) </span><span class="s0">as </span><span class="s1">image_file:</span>
+        <span class="s1">image_data = image_file.read()</span>
+    <span class="s1">fernet = Fernet(key)</span>
+    <span class="s1">encrypted_data = fernet.encrypt(image_data)</span>
+    <span class="s1">encrypted_image_path = </span><span class="s4">f&quot;</span><span class="s5">{</span><span class="s1">image_path</span><span class="s5">}</span><span class="s4">.enc&quot;</span>
+    <span class="s0">with </span><span class="s1">open(encrypted_image_path, </span><span class="s4">'wb'</span><span class="s1">) </span><span class="s0">as </span><span class="s1">encrypted_file:</span>
+        <span class="s1">encrypted_file.write(encrypted_data)</span>
+    <span class="s0">return </span><span class="s1">encrypted_image_path</span>
+
+<span class="s0">def </span><span class="s1">decrypt_image(encrypted_image_path, key, output_path):</span>
+    <span class="s2">&quot;&quot;&quot;Decrypts an encrypted image using the provided key.&quot;&quot;&quot;</span>
+    <span class="s1">encrypted_image_path = encrypted_image_path.strip().strip(</span><span class="s4">'&quot;'</span><span class="s1">).strip(</span><span class="s4">&quot;'&quot;</span><span class="s1">)</span>
+    <span class="s0">if not </span><span class="s1">os.path.isfile(encrypted_image_path):</span>
+        <span class="s0">raise </span><span class="s1">FileNotFoundError(</span><span class="s4">f&quot;The file at path </span><span class="s5">{</span><span class="s1">encrypted_image_path</span><span class="s5">} </span><span class="s4">does not exist.&quot;</span><span class="s1">)</span>
+    <span class="s0">with </span><span class="s1">open(encrypted_image_path, </span><span class="s4">'rb'</span><span class="s1">) </span><span class="s0">as </span><span class="s1">encrypted_file:</span>
+        <span class="s1">encrypted_data = encrypted_file.read()</span>
+    <span class="s1">fernet = Fernet(key)</span>
+    <span class="s1">decrypted_data = fernet.decrypt(encrypted_data)</span>
+    <span class="s0">with </span><span class="s1">open(output_path, </span><span class="s4">'wb'</span><span class="s1">) </span><span class="s0">as </span><span class="s1">output_file:</span>
+        <span class="s1">output_file.write(decrypted_data)</span>
+    <span class="s0">return </span><span class="s1">output_path</span>
+
+<span class="s0">def </span><span class="s1">display_image(image_path):</span>
+    <span class="s2">&quot;&quot;&quot;Displays an image using Pillow.&quot;&quot;&quot;</span>
+    <span class="s0">with </span><span class="s1">Image.open(image_path) </span><span class="s0">as </span><span class="s1">img:</span>
+        <span class="s1">img.show()</span>
+
+<span class="s2"># User Management</span>
+<span class="s0">def </span><span class="s1">register(username, password):</span>
+    <span class="s2">&quot;&quot;&quot;Registers a new user with a hashed password.&quot;&quot;&quot;</span>
+    <span class="s0">if </span><span class="s1">username </span><span class="s0">in </span><span class="s1">user_credentials:</span>
+        <span class="s1">print(</span><span class="s4">&quot;Username already exists. Please choose a different username.&quot;</span><span class="s1">)</span>
+        <span class="s0">return False</span>
+    <span class="s1">hashed_password = hash_password(password)</span>
+    <span class="s1">user_credentials[username] = hashed_password</span>
+    <span class="s1">user_notes[username] = []  </span><span class="s2"># Initialize notes storage for the user</span>
+    <span class="s1">print(</span><span class="s4">f&quot;User '</span><span class="s5">{</span><span class="s1">username</span><span class="s5">}</span><span class="s4">' registered successfully.&quot;</span><span class="s1">)</span>
+    <span class="s0">return True</span>
+
+<span class="s0">def </span><span class="s1">login(username, password):</span>
+    <span class="s2">&quot;&quot;&quot;Logs in a user by verifying the password.&quot;&quot;&quot;</span>
+    <span class="s0">if </span><span class="s1">username </span><span class="s0">not in </span><span class="s1">user_credentials:</span>
+        <span class="s1">print(</span><span class="s4">&quot;Username not found. Please register first.&quot;</span><span class="s1">)</span>
+        <span class="s0">return False</span>
+    <span class="s1">hashed_password = hash_password(password)</span>
+    <span class="s0">if </span><span class="s1">user_credentials[username] == hashed_password:</span>
+        <span class="s1">print(</span><span class="s4">&quot;Login successful.&quot;</span><span class="s1">)</span>
+        <span class="s0">return True</span>
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s1">print(</span><span class="s4">&quot;Incorrect password.&quot;</span><span class="s1">)</span>
+        <span class="s0">return False</span>
+
+<span class="s2"># Note-Taking Application</span>
+<span class="s0">def </span><span class="s1">add_note(username, note, key):</span>
+    <span class="s2">&quot;&quot;&quot;Adds a new note for the user, encrypting it first.&quot;&quot;&quot;</span>
+    <span class="s1">encrypted_note = encrypt_data(note, key)</span>
+    <span class="s1">user_notes[username].append(encrypted_note)</span>
+    <span class="s1">print(</span><span class="s4">&quot;Note added successfully.&quot;</span><span class="s1">)</span>
+
+<span class="s0">def </span><span class="s1">view_notes(username, key):</span>
+    <span class="s2">&quot;&quot;&quot;Views all notes for the user, decrypting them.&quot;&quot;&quot;</span>
+    <span class="s1">print(</span><span class="s4">&quot;Your notes:&quot;</span><span class="s1">)</span>
+    <span class="s0">for </span><span class="s1">encrypted_note </span><span class="s0">in </span><span class="s1">user_notes[username]:</span>
+        <span class="s0">try</span><span class="s1">:</span>
+            <span class="s1">decrypted_note = decrypt_data(encrypted_note, key)</span>
+            <span class="s1">print(</span><span class="s4">f&quot;- </span><span class="s5">{</span><span class="s1">decrypted_note</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+        <span class="s0">except </span><span class="s1">Exception </span><span class="s0">as </span><span class="s1">e:</span>
+            <span class="s1">print(</span><span class="s4">f&quot;Could not decrypt note: </span><span class="s5">{</span><span class="s1">e</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+<span class="s0">if </span><span class="s1">__name__ == </span><span class="s4">&quot;__main__&quot;</span><span class="s1">:</span>
+    <span class="s0">while True</span><span class="s1">:</span>
+        <span class="s1">action = input(</span><span class="s4">&quot;Do you want to register, login, or exit? (register/login/exit): &quot;</span><span class="s1">).strip().lower()</span>
+        <span class="s0">if </span><span class="s1">action == </span><span class="s4">'register'</span><span class="s1">:</span>
+            <span class="s1">username = input(</span><span class="s4">&quot;Enter a username to register: &quot;</span><span class="s1">)</span>
+            <span class="s1">password = input(</span><span class="s4">&quot;Enter a password: &quot;</span><span class="s1">)</span>
+            <span class="s1">register(username, password)</span>
+        <span class="s0">elif </span><span class="s1">action == </span><span class="s4">'login'</span><span class="s1">:</span>
+            <span class="s1">username = input(</span><span class="s4">&quot;Enter your username: &quot;</span><span class="s1">)</span>
+            <span class="s1">password = input(</span><span class="s4">&quot;Enter your password: &quot;</span><span class="s1">)</span>
+            <span class="s0">if </span><span class="s1">login(username, password):</span>
+                <span class="s1">key = generate_key(password)</span>
+                <span class="s0">while True</span><span class="s1">:</span>
+                    <span class="s1">task = input(</span><span class="s4">&quot;Choose a task: encrypt_data, encrypt_image, notes, logout: &quot;</span><span class="s1">).strip().lower()</span>
+                    <span class="s0">if </span><span class="s1">task == </span><span class="s4">&quot;encrypt_data&quot;</span><span class="s1">:</span>
+                        <span class="s1">data = input(</span><span class="s4">&quot;Enter data to encrypt: &quot;</span><span class="s1">)</span>
+                        <span class="s1">encrypted_data = encrypt_data(data, key)</span>
+                        <span class="s1">print(</span><span class="s4">f&quot;Encrypted data: </span><span class="s5">{</span><span class="s1">encrypted_data</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+                        <span class="s2"># Decrypting data</span>
+                        <span class="s1">password_check = input(</span><span class="s4">&quot;Enter the password to decrypt data: &quot;</span><span class="s1">)</span>
+                        <span class="s0">if </span><span class="s1">hash_password(password_check) == user_credentials[username]:</span>
+                            <span class="s1">decrypted_data = decrypt_data(encrypted_data, key)</span>
+                            <span class="s1">print(</span><span class="s4">f&quot;Decrypted data: </span><span class="s5">{</span><span class="s1">decrypted_data</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+                        <span class="s0">else</span><span class="s1">:</span>
+                            <span class="s1">print(</span><span class="s4">&quot;Incorrect password. Cannot decrypt data.&quot;</span><span class="s1">)</span>
+                    <span class="s0">elif </span><span class="s1">task == </span><span class="s4">&quot;encrypt_image&quot;</span><span class="s1">:</span>
+                        <span class="s1">image_path = input(</span><span class="s4">&quot;Enter the path of the image to encrypt: &quot;</span><span class="s1">)</span>
+                        <span class="s0">try</span><span class="s1">:</span>
+                            <span class="s1">encrypted_image_path = encrypt_image(image_path, key)</span>
+                            <span class="s1">print(</span><span class="s4">f&quot;Image encrypted to: </span><span class="s5">{</span><span class="s1">encrypted_image_path</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+                            <span class="s2"># Displaying encrypted image (note: encrypted data will not be a valid image)</span>
+                            <span class="s1">print(</span><span class="s4">&quot;Displaying the encrypted image (raw data):&quot;</span><span class="s1">)</span>
+                            <span class="s0">with </span><span class="s1">open(encrypted_image_path, </span><span class="s4">'rb'</span><span class="s1">) </span><span class="s0">as </span><span class="s1">enc_img:</span>
+                                <span class="s1">enc_img_data = enc_img.read()</span>
+                                <span class="s1">enc_img_io = io.BytesIO(enc_img_data)</span>
+                                <span class="s0">try</span><span class="s1">:</span>
+                                    <span class="s1">img = Image.open(enc_img_io)</span>
+                                    <span class="s1">img.show()</span>
+                                <span class="s0">except </span><span class="s1">Exception </span><span class="s0">as </span><span class="s1">e:</span>
+                                    <span class="s1">print(</span><span class="s4">f&quot;Cannot display encrypted image: </span><span class="s5">{</span><span class="s1">e</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+                            <span class="s2"># Decrypting image</span>
+                            <span class="s1">password_check = input(</span><span class="s4">&quot;Enter the password to decrypt the image: &quot;</span><span class="s1">)</span>
+                            <span class="s0">if </span><span class="s1">hash_password(password_check) == user_credentials[username]:</span>
+                                <span class="s1">decrypted_image_path = decrypt_image(encrypted_image_path, key, </span><span class="s4">&quot;decrypted_image.jpg&quot;</span><span class="s1">)</span>
+                                <span class="s1">print(</span><span class="s4">f&quot;Image decrypted to: </span><span class="s5">{</span><span class="s1">decrypted_image_path</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+                                <span class="s2"># Displaying decrypted image</span>
+                                <span class="s1">print(</span><span class="s4">&quot;Displaying the decrypted image:&quot;</span><span class="s1">)</span>
+                                <span class="s1">display_image(decrypted_image_path)</span>
+                            <span class="s0">else</span><span class="s1">:</span>
+                                <span class="s1">print(</span><span class="s4">&quot;Incorrect password. Cannot decrypt image.&quot;</span><span class="s1">)</span>
+                        <span class="s0">except </span><span class="s1">FileNotFoundError </span><span class="s0">as </span><span class="s1">e:</span>
+                            <span class="s1">print(e)</span>
+                        <span class="s0">except </span><span class="s1">Exception </span><span class="s0">as </span><span class="s1">e:</span>
+                            <span class="s1">print(</span><span class="s4">f&quot;An error occurred: </span><span class="s5">{</span><span class="s1">e</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+                    <span class="s0">elif </span><span class="s1">task == </span><span class="s4">&quot;notes&quot;</span><span class="s1">:</span>
+                        <span class="s1">note_action = input(</span><span class="s4">&quot;Would you like to add a note or view notes? (add/view): &quot;</span><span class="s1">).strip().lower()</span>
+                        <span class="s0">if </span><span class="s1">note_action == </span><span class="s4">&quot;add&quot;</span><span class="s1">:</span>
+                            <span class="s1">note = input(</span><span class="s4">&quot;Enter your note: &quot;</span><span class="s1">)</span>
+                            <span class="s1">add_note(username, note, key)</span>
+                        <span class="s0">elif </span><span class="s1">note_action == </span><span class="s4">&quot;view&quot;</span><span class="s1">:</span>
+                            <span class="s1">view_notes(username, key)</span>
+                        <span class="s0">else</span><span class="s1">:</span>
+                            <span class="s1">print(</span><span class="s4">&quot;Invalid action.&quot;</span><span class="s1">)</span>
+                    <span class="s0">elif </span><span class="s1">task == </span><span class="s4">&quot;logout&quot;</span><span class="s1">:</span>
+                        <span class="s0">break</span>
+                    <span class="s0">else</span><span class="s1">:</span>
+                        <span class="s1">print(</span><span class="s4">&quot;Invalid task.&quot;</span><span class="s1">)</span>
+        <span class="s0">elif </span><span class="s1">action == </span><span class="s4">'exit'</span><span class="s1">:</span>
+            <span class="s0">break</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">print(</span><span class="s4">&quot;Invalid action. Please enter 'register', 'login', or 'exit'.&quot;</span><span class="s1">)</span>
+</pre>
+</body>
+</html>
